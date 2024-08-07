@@ -11,6 +11,7 @@ const CreateAccount = () => {
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
 
+
   const onCreateAccount = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -107,12 +108,12 @@ const CreateAccount = () => {
             </button>
           </div>
         </form>
-        <p className="mt-10 text-center text-sm text-gray-500">
-          Already have an account{' '}
-          <a href="/sign-in" className="font-semibold leading-6 text-green-600 hover:text-green-500">
-            Login
-          </a>
-        </p>
+            <p className="mt-10 text-center text-sm text-gray-500">
+              Already have an account{' '}
+              <a href="/sign-in" className="font-semibold leading-6 text-green-600 hover:text-green-500">
+                Login
+              </a>
+            </p>
       </div>
     </div>
   )

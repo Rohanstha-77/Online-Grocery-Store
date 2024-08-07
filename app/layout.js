@@ -17,18 +17,18 @@ const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({ children }) {
   const pathname = usePathname();
-  const [updateCarts, setUpdateCarts] = useState(false);
-  const showHeader = pathname !== "/sign-in" && pathname !== "/create-account";
+  const [updateCart, setUpdateCart] = useState(false);
+  const showHeader = pathname !== "/sign-in" && pathname !== "/create-account" ;
   const showFooter = pathname !== "/sign-in" && pathname !== "/create-account";
 
   return (
     <html lang="en">
       <body className={inter.className}>
-        <UpdateCart.Provider value={{ updateCarts, setUpdateCarts }}>
+        <UpdateCart.Provider value={{ updateCart, setUpdateCart }}>
           {showHeader && <Header />}
           {children}
           <Toaster />
-          {showFooter && <Footer />}
+          {showFooter&& <Footer />}
         </UpdateCart.Provider>
       </body>
     </html>

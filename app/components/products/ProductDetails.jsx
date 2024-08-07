@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { UpdateCart } from "@/app/_context/UpdateCart";
 import React, { useContext, useState } from "react";
 import { toast } from "sonner";
+import { LoaderIcon } from "lucide-react";
 
 const ProductDetails = ({ product }) => {
   const router = useRouter();
@@ -12,6 +13,7 @@ const ProductDetails = ({ product }) => {
   const [productTotalPrice, setProductTotalPrice] = useState(
     product?.attributes?.disprice || product?.attributes?.price
   );
+  const [loader,setLoader] = useState(false)
 
   // Use context for cart management
   const { updateCart, setUpdateCart } = useContext(UpdateCart);
@@ -40,18 +42,20 @@ const ProductDetails = ({ product }) => {
         userId: user.id,
       },
     };
-
+    setLoader(true) //when data is been sent to api
     console.log(data);
     GlobalApi.addToCart(data, jwt)
       .then((res) => {
         // console.log(res);
         toast.success("Product added to cart successfully");
-        setUpdateCart(!updateCart); // Toggle cart update
+        setUpdateCart(!updateCart);
+        setLoader(false) // when data is set to api
       })
-    //   .catch((e) => {
-    //     console.error("Error adding to cart:", e);
-    //     toast.error("Failed to add product to cart");
-    //   });
+      .catch((e) => {
+        //console.error("Error adding to cart:", e);
+        toast.error("Failed to add product to cart");
+        setLoader(false)
+      });
   };
 
   const handleQuantityChange = (e) => {
@@ -111,10 +115,14 @@ const ProductDetails = ({ product }) => {
             </div>
             <div className="w-1/2 pr-2 mt-3">
               <button
-                className="w-full bg-[#16a34a] dark:bg-gray-600 text-white py-2 px-4 rounded-full font-bold"
+                className="w-full flex justify-center bg-[#16a34a] dark:bg-gray-600 text-white py-2 px-4 rounded-full font-bold"
                 onClick={addToCart}
               >
-                Add to Cart
+                {loader ? (
+                  <LoaderIcon className="animate-spin "/> 
+                ):(
+                  "Add To Cart"
+                )}                
               </button>
             </div>
           </div>

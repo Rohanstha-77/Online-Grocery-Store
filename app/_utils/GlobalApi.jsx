@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosClient = axios.create({
-    baseURL: "http://192.168.1.8:1337/api",
+    baseURL: "http://192.168.1.189:1337/api",
 });
 
 const getCatagory = ()=> axiosClient.get("/catagories?populate=*")
@@ -11,6 +11,7 @@ const getProduct = ()=> axiosClient.get("/products?populate=*").then((res)=>res.
 // console.log(getProduct)
 
 const getSingleCatagory = (catagory)=> axiosClient.get(`/products?populate=*&filters[catagories][title][$in]=${catagory}`)
+
 
 const registerUser = (username,email,password)=> axiosClient.post("/auth/local/register",{
     username,
@@ -29,24 +30,52 @@ const addToCart = (data,jwt)=>axiosClient.post("/user-carts",data,{
     }
 })
 
-const getCartItems=(userId,jwt)=> axiosClient.get(`/user-carts?populate[products][populate]=*&filters[userId][$eq]=${userId}`,{
+const getCartItems = async (userId, jwt) => {
+    try {
+    //   console.log('Requesting cart items with User ID:', userId);
+    //   console.log('Using JWT Token:', jwt); 
+  
+      const res = await axiosClient.get(`/user-carts?populate[products][populate]=*&filters[userId][$eq]=${userId}`, {
+        headers: {
+          Authorization: "Bearer" + jwt,
+        },
+      });
+  
+      const result = res.data.data || [];
+    //  console.log(result);
+        const cartItemsList = result.map((item) => ({
+            title: item.attributes?.products?.data?.attributes?.title,
+            quantity: item.attributes?.quantity,
+            amount: item.attributes?.amount,
+            img: item.attributes?.products?.data?.attributes?.img?.data?.attributes?.formats?.url,
+            actualPrice: item.attributes?.products?.data?.attributes?.price,
+            id: item.id,
+        }));
+    //   console.log(cartItemsList)
+      return cartItemsList;
+    } catch (error) {
+      console.error('Error fetching cart items:', error.response?.data || error.message);
+      throw error;
+    }
+  };
+  
+
+  const removeItem = (id,jwt)=>axiosClient.delete(`/user-carts/${id}`,{
     headers: {
-        Authorization: "Bearer" + jwt
+      Authorization: "Bearer" + jwt,
     },
-}).then((res)=>{
-    const result = res.data.data;
-    console.log(result)
-    const cartItemsList = result.map((item,index)=>({
-        title: item.attributes.products?.data[0].attributes.title,
-        quantity: item.attributes.quantity,
-        amount: item.attributes.amount,
-        img: item.attributes.products?.data[0].attributes.img?.data?.attributes?.url,
-        actualPrice: item.attributes.products?.data[0].attributes.price,
-        id: item.id
-    }))
-    // return cartItemsList
-    console.log(cartItemsList)
-})
+  })
+    
+  const esewaIntegration= (id ,jwt)=>{
+      axiosClient.post(`/user-carts/${id}`,
+        {
+        header: "Bearer" + jwt
+      }
+    ).then((res)=>{
+      const results = res.data.data
+      console.log(results)
+    })
+  }
 
 
-export default {getCatagory, getProduct, getSingleCatagory,registerUser,signIn, addToCart, getCartItems};
+export default {getCatagory, getProduct, getSingleCatagory,registerUser,signIn, addToCart, getCartItems, removeItem, esewaIntegration};

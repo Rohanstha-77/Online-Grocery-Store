@@ -1,6 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
+
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet"
+
+
 import {
   Dialog,
   DialogPanel,
@@ -29,21 +41,70 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useRouter } from 'next/navigation'
 import GlobalApi from '../_utils/GlobalApi'
+import CartItemList from './cart/CartItemList'
+import { UpdateCart } from '../_context/UpdateCart'
+import { toast } from 'sonner'
+
 
 export default function Header() {
-
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isLogin, setIsLogin] = useState(false)
-  const [cartItem, setCartsItem] = useState([])
+  const [cartItem, setCartItem] = useState([])
   const [subTotal, setSubTotal] = useState(0)
   const [totalCart, setTotalCart] = useState(0)
+  const [user, setUser] = useState(null)
+  const [jwt, setJwt] = useState('')
+  const {updateCart,setUpdateCart} = useContext(UpdateCart)
+
+  useEffect(()=>{
+    let total=0;
+    cartItem?.map((item)=>{
+      total+=item.amount;
+    }
+    )
+    setSubTotal(total.toFixed(2))
+  })
+
+  const onDeleteItem=(id)=>{
+    GlobalApi.removeItem(id,jwt).then((res)=>{
+      setUpdateCart(!UpdateCart)
+      getCartsData();                                     
+      if (getCartsData()) {
+        toast('Your cart has been sucessfully removed')
+      }else{
+        toast("some thing went wrong")
+      }
+    }
+  )}
 
   useEffect(() => {
-    const jwt = sessionStorage.getItem('jwt')
-    setIsLogin(!!jwt)
+    // Retrieve user and JWT from session storage
+    const storedUser = sessionStorage.getItem('user');
+    const storedJwt = sessionStorage.getItem('jwt');
+    // console.log('Stored JWT:', storedJwt); // Debugging line
+    // console.log('Stored User:', storedUser); // Debugging line
+    if (storedUser && storedJwt) {
+      setUser(JSON.parse(storedUser));
+      setJwt(storedJwt);
+      setIsLogin(true);
+    } else {
+      setIsLogin(false);
+    }
   }, [])
 
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem('user');
+    const storedJwt = sessionStorage.getItem('jwt');
+    // console.log('User:', storedUser); // Debugging line
+    // console.log('JWT:', storedJwt); // Debugging line
+    if (storedUser && storedJwt) {
+      getCartsData();
+    } else {
+      console.log("User or JWT not found");
+    }
+  }, [user, jwt])
+  
   const OnSignOut = () => {
     sessionStorage.removeItem('user')
     sessionStorage.removeItem('jwt')
@@ -51,14 +112,28 @@ export default function Header() {
     window.location.reload()
   }
 
-  useEffect(()=>{
-    // getCartsData();
-  },[])
-  const getCartsData = async()=>{
-    if(!user) return;
-    const cartItemsList = await GlobalApi.getCartItems(user?.id,jwt)
-  };
 
+  const getCartsData = async () => {
+    const storedUser = sessionStorage.getItem('user');
+    const storedJwt = sessionStorage.getItem('jwt');
+    if (!storedUser || !storedJwt) return console.log("user and jwt not found.");
+
+    try {
+      const cartItemsList = await GlobalApi.getCartItems(user.id, jwt);
+      // console.log('Cart Items List:', cartItemsList); // Debugging line
+      setTotalCart(cartItemsList?.length || 0);
+      setCartItem(cartItemsList)
+      getCartsData()
+       // Safely handle undefined or null
+    } catch (error) {
+      console.error('Error fetching cart items:', error);
+    }
+  }
+
+  const checkOut=()=>{
+    router.push(jwt?"/Checkout":"something went wrong")
+  }
+  // console.log(cartItem)
   return (
     <header className="bg-white">
       <nav aria-label="Global" className="container mx-auto flex items-center justify-between py-6">
@@ -84,12 +159,33 @@ export default function Header() {
           <a href="#" className="text-md font-semibold leading-6 text-gray-900">Contact</a>
         </PopoverGroup>
         <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-4">
-          <a href="#" className='bg-gray-200 p-2 rounded-full'>
-            <MagnifyingGlassIcon width={22} className='cursor-pointer hover:scale-110 hover:transition-transform'/>
+          <a href="#" className='text-3xl-'>
+            <MagnifyingGlassIcon width={22} className='pt-1 cursor-pointer hover:scale-110 hover:transition-transform'/>
           </a>
-          <a href="#" className="bg-gray-200 p-2 rounded-full">
-            <ShoppingBagIcon width={22} className='cursor-pointer hover:scale-110 hover:transition-transform'/>
-          </a>
+          <Sheet>
+            <SheetTrigger>
+              <a href="#" className="text-3xl">
+                <ShoppingBagIcon width={22} className='cursor-pointer hover:scale-110 hover:transition-transform'/>
+              </a>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle className="bg-green-600 text-white text-xl font-semibold py-2 rounded-md text-center mx-8 shadow-xl">My Cart</SheetTitle>
+                <SheetDescription>
+                  <CartItemList cartItem={cartItem} onDeleteItem={onDeleteItem}/>
+                </SheetDescription>
+                <SheetClose>
+                  <div className='absolute w-[85%] bottom-6 flex flex-col gap-5'>
+                    <h2 className='font-semibold text-lg flex justify-around'>Sub Total: <span>${subTotal}</span></h2>
+                    <Button className="bg-green-500 mx-10" onClick={checkOut}>
+                      Checkout
+                    </Button>
+                  </div>
+                </SheetClose>
+              </SheetHeader>
+            </SheetContent>
+          </Sheet>
+
           <Badge className="text-sm w-9 h-9 px-3 bg-[#16a34a]">{totalCart}</Badge>
           {!isLogin ? (
             <Link href="/sign-in">
@@ -107,7 +203,7 @@ export default function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Profile</DropdownMenuItem>
                 <DropdownMenuItem>My orders</DropdownMenuItem>
-                <DropdownMenuItem onClick={OnSignOut}>Logout</DropdownMenuItem>
+                <DropdownMenuItem onClick={OnSignOut} >Logout</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
